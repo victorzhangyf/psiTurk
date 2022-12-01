@@ -8,12 +8,14 @@ import sys
 import hashlib
 import signal
 from gevent import monkey
+
 monkey.patch_all()
 
 config = PsiturkConfig()
 config.load_config()
 
 
+# yapf: disable
 def sigint_handler(signal, frame):
     """
     Give feedback when ^C is submitted by user.
@@ -88,7 +90,9 @@ class ExperimentServer(Application):
         self.user_options = {
             'bind': config.get('Server Parameters', "host") + ":" + config.get('Server Parameters', "port"),
             'workers': workers,
-            'worker_class': 'gevent',
+            # 'worker_class': 'gevent',
+            # 'worker_class': 'eventlet',
+            'worker_class': "geventwebsocket.gunicorn.workers.GeventWebSocketWorker",
             'loglevels': self.loglevels,
             'loglevel': self.loglevels[config.getint("Server Parameters", "loglevel")],
             'accesslog': config.get('Server Parameters', "accesslog"),
@@ -116,3 +120,4 @@ def launch(app_dir=None):
 
 if __name__ == "__main__":
     launch()
+# yapf: enable
