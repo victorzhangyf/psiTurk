@@ -90,8 +90,6 @@ class ExperimentServer(Application):
         self.user_options = {
             'bind': config.get('Server Parameters', "host") + ":" + config.get('Server Parameters', "port"),
             'workers': workers,
-            # 'worker_class': 'gevent',
-            # 'worker_class': 'eventlet',
             'worker_class': "geventwebsocket.gunicorn.workers.GeventWebSocketWorker",
             'loglevels': self.loglevels,
             'loglevel': self.loglevels[config.getint("Server Parameters", "loglevel")],
@@ -99,6 +97,7 @@ class ExperimentServer(Application):
             'errorlog': config.get('Server Parameters', "logfile"),
             'proc_name': 'psiturk_experiment_server_' + project_hash,
             'limit_request_line': '0',
+            'reload': config.get('Server Parameters', 'reload')
         }
 
         if config.get("Server Parameters", "certfile") and config.get("Server Parameters", "keyfile"):

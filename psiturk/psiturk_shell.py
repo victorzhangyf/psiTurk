@@ -15,7 +15,7 @@ from psiturk import experiment_server_controller as control
 from psiturk.psiturk_config import PsiturkConfig
 from psiturk.version import version_number
 from psiturk.amt_services_wrapper import MTurkServicesWrapper
-from .psiturk_exceptions import *
+from psiturk.psiturk_exceptions import *
 import webbrowser
 from docopt import docopt, DocoptExit
 from cmd2 import Cmd
@@ -31,11 +31,9 @@ import subprocess
 import sys
 from functools import wraps
 import shlex
-urllib3.contrib.pyopenssl.inject_into_urllib3()
-http = urllib3.PoolManager(
-    cert_reqs='CERT_REQUIRED',
-    ca_certs=certifi.where())
 
+urllib3.contrib.pyopenssl.inject_into_urllib3()
+http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
 
 try:
     # prefer gnureadline if user has installed it
@@ -53,6 +51,7 @@ def docopt_cmd(func):
     This decorator is used to simplify the try/except block and pass the result
     of the docopt parsing to the called action.
     """
+
     @wraps(func)
     def helper_fn(self, arg):
         """helper function for docopt"""
@@ -83,17 +82,16 @@ class PsiturkNetworkShell(Cmd, object):
     def amt_services_wrapper(self):
         if not self._cached_amt_services_wrapper:
             try:
-                _wrapper = MTurkServicesWrapper(
-                    config=self.config, mode=self.mode)
+                _wrapper = MTurkServicesWrapper(config=self.config,
+                                                mode=self.mode)
                 self._cached_amt_services_wrapper = _wrapper
             except AmtServicesException as e:
                 still_can_do = '\n'.join([
                     '',
                     'You can still use the psiturk server by running non-AWS commands such as:',
-                    '- `psiturk server <subcommand>`',
-                    '- `psiturk server on`',
-                    '- `psiturk server off`',
-                    '- `psiturk debug -p`'])
+                    '- `psiturk server <subcommand>`', '- `psiturk server on`',
+                    '- `psiturk server off`', '- `psiturk debug -p`'
+                ])
                 message = e.message
                 if not self.quiet:
                     message = '{}{}'.format(message, still_can_do)
@@ -116,13 +114,13 @@ class PsiturkNetworkShell(Cmd, object):
 
     def default(self, statement):
         cmd = statement.command
-
         ''' Collect incorrect and mistyped commands '''
-        choices = ["help", "mode", "psiturk_status", "server", "shortcuts",
-                   "worker", "db", "edit", "open", "config", "show",
-                   "debug", "setup_example", "status", "amt_balance",
-                   "download_datafiles", "exit", "hit", "load", "quit", "save",
-                   "shell", "version"]
+        choices = [
+            "help", "mode", "psiturk_status", "server", "shortcuts", "worker",
+            "db", "edit", "open", "config", "show", "debug", "setup_example",
+            "status", "amt_balance", "download_datafiles", "exit", "hit",
+            "load", "quit", "save", "shell", "version"
+        ]
         self.poutput("{} is not a psiTurk command. See 'help'.".format(cmd))
         guess = process.extractOne(cmd, choices)
         if guess and guess[1] > 50:
@@ -161,8 +159,8 @@ class PsiturkNetworkShell(Cmd, object):
             self.intro = ''
 
     def server_off(self):
-        if (self.server.is_server_running() == 'yes' or
-                self.server.is_server_running() == 'maybe'):
+        if (self.server.is_server_running() == 'yes'
+                or self.server.is_server_running() == 'maybe'):
             self.server.shutdown()
             self.poutput('Please wait. This could take a few seconds.')
             while self.server.is_server_running() != 'no':
@@ -181,9 +179,9 @@ class PsiturkNetworkShell(Cmd, object):
         r = http.request('GET', status_msg_url)
         status_message = r.data.decode('utf-8')
 
-        return status_message + colorize('psiTurk version ' + version_number +
-                                         '\nType "help" for more information.',
-                                         'green', False)
+        return status_message + colorize(
+            'psiTurk version ' + version_number +
+            '\nType "help" for more information.', 'green', False)
 
     def color_prompt(self):
         prompt = '[' + colorize('psiTurk', 'bold')
@@ -251,8 +249,8 @@ class PsiturkNetworkShell(Cmd, object):
         """ Reload config. """
         # TODO: I don't think that this follows all the way through!
         restart_server = False
-        if (self.server.is_server_running() == 'yes' or
-                self.server.is_server_running() == 'maybe'):
+        if (self.server.is_server_running() == 'yes'
+                or self.server.is_server_running() == 'maybe'):
             user_input = input("Reloading configuration requires the server "
                                "to restart. Really reload? y or n: ")
             if user_input != 'y':
@@ -296,8 +294,8 @@ class PsiturkNetworkShell(Cmd, object):
 
     def do_quit(self, _):
         """ Execute on quit """
-        if (self.server.is_server_running() == 'yes' or
-                self.server.is_server_running() == 'maybe'):
+        if (self.server.is_server_running() == 'yes'
+                or self.server.is_server_running() == 'maybe'):
             user_input = input("Quitting shell will shut down experiment "
                                "server.  Really quit? y or n: ")
             if user_input == 'y':
@@ -316,9 +314,11 @@ class PsiturkNetworkShell(Cmd, object):
 
     def do_download_datafiles(self, _):
         """ Download datafiles. """
-        contents = {"trialdata": lambda p: p.get_trial_data(), "eventdata":
-                    lambda p: p.get_event_data(), "questiondata": lambda p:
-                    p.get_question_data()}
+        contents = {
+            "trialdata": lambda p: p.get_trial_data(),
+            "eventdata": lambda p: p.get_event_data(),
+            "questiondata": lambda p: p.get_question_data()
+        }
         query = Participant.query.all()
         for k in contents:
             ret = "".join([contents[k](p) for p in query])
@@ -332,14 +332,14 @@ class PsiturkNetworkShell(Cmd, object):
     def hit_list(self, active_hits, reviewable_hits, all_studies):
         """ List hits. """
         if active_hits:
-            hits_data = (self.amt_services_wrapper.get_active_hits(
-                all_studies)).data
+            hits_data = (
+                self.amt_services_wrapper.get_active_hits(all_studies)).data
         elif reviewable_hits:
             hits_data = (self.amt_services_wrapper.get_reviewable_hits(
                 all_studies)).data
         else:
-            hits_data = (self.amt_services_wrapper.get_all_hits(
-                all_studies)).data
+            hits_data = (
+                self.amt_services_wrapper.get_all_hits(all_studies)).data
         if not hits_data:
             self.poutput('*** no hits retrieved')
         else:
@@ -371,8 +371,13 @@ class PsiturkNetworkShell(Cmd, object):
             except KeyError:
                 response = input("Please respond 'y' or 'n': ").strip().lower()
 
-    def hit_create(self, num_workers, reward, duration,
-                   require_qualification_ids=None, block_qualification_ids=None, **kwargs):
+    def hit_create(self,
+                   num_workers,
+                   reward,
+                   duration,
+                   require_qualification_ids=None,
+                   block_qualification_ids=None,
+                   **kwargs):
 
         # backwards compatibility
         if 'whitelist_qualification_ids' in kwargs and not require_qualification_ids:
@@ -425,23 +430,26 @@ class PsiturkNetworkShell(Cmd, object):
         _, fee, total = self._estimate_expenses(num_workers, reward)
 
         if not self.quiet:
-            dialog_query = '\n'.join(['*****************************',
-                                      '    Max workers: %d' % num_workers,
-                                      '    Reward: $%.2f' % reward,
-                                      '    Duration: %s hours' % duration,
-                                      '    Fee: $%.2f' % fee,
-                                      '    ________________________',
-                                      '    Total: $%.2f' % total,
-                                      'Create %s HIT [y/n]? ' % colorize(self.mode, 'bold')])
+            dialog_query = '\n'.join([
+                '*****************************',
+                '    Max workers: %d' % num_workers,
+                '    Reward: $%.2f' % reward,
+                '    Duration: %s hours' % duration,
+                '    Fee: $%.2f' % fee, '    ________________________',
+                '    Total: $%.2f' % total,
+                'Create %s HIT [y/n]? ' % colorize(self.mode, 'bold')
+            ])
             if not self._confirm_dialog(dialog_query):
                 self.poutput('*** Cancelling HIT creation.')
                 return
 
         try:
-            create_hit_response = self.amt_services_wrapper.create_hit(num_workers=num_workers, reward=reward,
-                                                                       duration=duration,
-                                                                       require_qualification_ids=require_qualification_ids,
-                                                                       block_qualification_ids=block_qualification_ids)
+            create_hit_response = self.amt_services_wrapper.create_hit(
+                num_workers=num_workers,
+                reward=reward,
+                duration=duration,
+                require_qualification_ids=require_qualification_ids,
+                block_qualification_ids=block_qualification_ids)
 
             if create_hit_response.status != 'success':
                 self.poutput('Error during hit creation.')
@@ -453,16 +461,16 @@ class PsiturkNetworkShell(Cmd, object):
             hit_id = create_hit_response.data['hit_id']
 
             # TODO: "with qualification type ids..."
-            self.poutput('\n'.join(['*****************************',
-                                    '  Created %s HIT' % colorize(
-                                        self.mode, 'bold'),
-                                    '    HITid: %s' % str(hit_id),
-                                    '    Max workers: %d' % num_workers,
-                                    '    Reward: $%.2f' % reward,
-                                    '    Duration: %s hours' % duration,
-                                    '    Fee: $%.2f' % fee,
-                                    '    ________________________',
-                                    '    Total: $%.2f' % total]))
+            self.poutput('\n'.join([
+                '*****************************',
+                '  Created %s HIT' % colorize(self.mode, 'bold'),
+                '    HITid: %s' % str(hit_id),
+                '    Max workers: %d' % num_workers,
+                '    Reward: $%.2f' % reward,
+                '    Duration: %s hours' % duration,
+                '    Fee: $%.2f' % fee, '    ________________________',
+                '    Total: $%.2f' % total
+            ]))
 
             # Print the Ad Url
             base = self.config.get_ad_url()
@@ -474,8 +482,7 @@ class PsiturkNetworkShell(Cmd, object):
             self.poutput(f'  Ad URL: {ad_url}')
             self.poutput(
                 "Note: This url cannot be used to run your full psiTurk experiment."
-                "It is only for testing your ad."
-            )
+                "It is only for testing your ad.")
 
             # Print the Mturk Url
             mturk_url = ''
@@ -499,12 +506,16 @@ class PsiturkNetworkShell(Cmd, object):
     def worker_list(self, chosen_hits=None, status=None, all_studies=False):
         try:
             workers = (self.amt_services_wrapper.get_assignments(
-                hit_ids=chosen_hits, assignment_status=status, all_studies=all_studies)).data['assignments']
+                hit_ids=chosen_hits,
+                assignment_status=status,
+                all_studies=all_studies)).data['assignments']
             if not len(workers):
                 self.poutput("*** no workers match your request")
             else:
-                worker_json = json.dumps(workers, indent=4,
-                                         separators=(',', ': '), default=str)
+                worker_json = json.dumps(workers,
+                                         indent=4,
+                                         separators=(',', ': '),
+                                         default=str)
                 if worker_json:
                     self.poutput(worker_json)
 
@@ -512,7 +523,12 @@ class PsiturkNetworkShell(Cmd, object):
             self.poutput(colorize(repr(e), 'red'))
 
     # TODO: consider renaming all to all_hits; shadows built-in
-    def worker_approve(self, all=False, chosen_hits=None, assignment_ids=None, all_studies=False, force=False):
+    def worker_approve(self,
+                       all=False,
+                       chosen_hits=None,
+                       assignment_ids=None,
+                       all_studies=False,
+                       force=False):
 
         if all_studies and not force:
             self.poutput(
@@ -624,8 +640,8 @@ class PsiturkNetworkShell(Cmd, object):
         # server_status = self.server.is_server_running()  # Not used
         self.update_hit_tally()
         hit_count = self.sandbox_hits if self.mode == 'sandbox' else self.live_hits
-        self.poutput('AMT worker site - ' + colorize(self.mode, 'bold') + ': '
-                     + str(hit_count) + ' HITs available')
+        self.poutput('AMT worker site - ' + colorize(self.mode, 'bold') +
+                     ': ' + str(hit_count) + ' HITs available')
 
     def maybe_update_hit_tally(self):
         if not self.quiet:
@@ -664,12 +680,16 @@ class PsiturkNetworkShell(Cmd, object):
             self.do_list_qualifications()
 
     def do_list_qualifications(self):
-        result = (self.amt_services_wrapper.list_qualification_types(MustBeOwnedByCaller=True))
+        result = (self.amt_services_wrapper.list_qualification_types(
+            MustBeOwnedByCaller=True))
         if not result.success:
             return self.poutput(result)
         qualification_types = result.data['qualification_types']
         only_these_keys = ['Name', 'Description', 'QualificationTypeId']
-        q_type_projection = [{key: q_type[key] for key in only_these_keys} for q_type in qualification_types if q_type['QualificationTypeStatus'] == 'Active']
+        q_type_projection = [{key: q_type[key]
+                              for key in only_these_keys}
+                             for q_type in qualification_types
+                             if q_type['QualificationTypeStatus'] == 'Active']
         if not q_type_projection:
             self.poutput('No custom qualifications found.')
         for q_type in q_type_projection:
@@ -709,10 +729,12 @@ class PsiturkNetworkShell(Cmd, object):
             return
         else:
             restart_server = False
-            if self.server.is_server_running() == 'yes' or self.server.is_server_running() == 'maybe':
+            if self.server.is_server_running(
+            ) == 'yes' or self.server.is_server_running() == 'maybe':
                 if not self.quiet:
-                    r = input("Switching modes requires the server to restart. Really "
-                              "switch modes? y or n: ")
+                    r = input(
+                        "Switching modes requires the server to restart. Really "
+                        "switch modes? y or n: ")
                     if r != 'y':
                         return
                     else:
@@ -741,12 +763,17 @@ class PsiturkNetworkShell(Cmd, object):
         all_studies = arg['--all-studies']
 
         if arg['create']:
-            self.hit_create(arg['<num_workers>'], arg['<reward>'], arg['<duration>'],
-                            require_qualification_ids=arg['<require_qualification_id>'],
-                            block_qualification_ids=arg['<block_qualification_id>'])
+            self.hit_create(
+                arg['<num_workers>'],
+                arg['<reward>'],
+                arg['<duration>'],
+                require_qualification_ids=arg['<require_qualification_id>'],
+                block_qualification_ids=arg['<block_qualification_id>'])
         elif arg['extend']:
             result = self.amt_services_wrapper.extend_hit(
-                arg['<HITid>'][0], assignments=arg['<number>'], minutes=arg['<minutes>'])
+                arg['<HITid>'][0],
+                assignments=arg['<number>'],
+                minutes=arg['<minutes>'])
             self.poutput(result)
         elif arg['expire']:
             did_something = False
@@ -767,7 +794,8 @@ class PsiturkNetworkShell(Cmd, object):
         elif arg['delete']:
             did_something = False
             if arg['--all']:
-                result = self.amt_services_wrapper.delete_all_hits(all_studies=all_studies)
+                result = self.amt_services_wrapper.delete_all_hits(
+                    all_studies=all_studies)
                 if not result.success:
                     return self.poutput(result)
                 results = result.data['results']
@@ -782,8 +810,7 @@ class PsiturkNetworkShell(Cmd, object):
             if did_something:
                 self.update_hit_tally()
         elif arg['list']:
-            self.hit_list(arg['--active'], arg['--reviewable'],
-                          all_studies)
+            self.hit_list(arg['--active'], arg['--reviewable'], all_studies)
         else:
             self.help_hit()
 
@@ -791,8 +818,9 @@ class PsiturkNetworkShell(Cmd, object):
 
     def complete_hit(self, text, line, begidx, endidx):
         """ Tab-complete hit command. """
-        return [i for i in PsiturkNetworkShell.hit_commands if
-                i.startswith(text)]
+        return [
+            i for i in PsiturkNetworkShell.hit_commands if i.startswith(text)
+        ]
 
     def help_hit(self):
         """ HIT help """
@@ -816,7 +844,8 @@ class PsiturkNetworkShell(Cmd, object):
         all_studies = arg['--all-studies']
         if arg['approve']:
             self.worker_approve(arg['--all'], arg['<hit_id>'],
-                                arg['<assignment_id>'], all_studies, arg['--force'])
+                                arg['<assignment_id>'], all_studies,
+                                arg['--force'])
         elif arg['reject']:
             results = None
             if arg['<hit_id>']:
@@ -856,8 +885,9 @@ class PsiturkNetworkShell(Cmd, object):
             elif arg['--rejected']:
                 status = 'Rejected'
 
-            self.worker_list(
-                status=status, chosen_hits=arg['<hit_id>'], all_studies=all_studies)
+            self.worker_list(status=status,
+                             chosen_hits=arg['<hit_id>'],
+                             all_studies=all_studies)
 
         elif arg['bonus']:
             reason = arg['--reason']
@@ -865,13 +895,14 @@ class PsiturkNetworkShell(Cmd, object):
                 reason = ' '.join(reason)
             if not reason:
                 if self.config.get('Shell Parameters', 'bonus_message'):
-                    reason = self.config.get(
-                        'Shell Parameters', 'bonus_message')
+                    reason = self.config.get('Shell Parameters',
+                                             'bonus_message')
                     self.poutput(
                         f'Using bonus `reason` from config file: "{reason}"')
                 while not reason:
-                    user_input = input("Type the reason for the bonus. Workers "
-                                       "will see this message: ")
+                    user_input = input(
+                        "Type the reason for the bonus. Workers "
+                        "will see this message: ")
                     reason = user_input
 
             override_bonused_status = arg['--override-bonused-status']
@@ -884,7 +915,11 @@ class PsiturkNetworkShell(Cmd, object):
             results = None
             if arg['<hit_id>']:
                 result = (self.amt_services_wrapper.bonus_assignments_for_hit(
-                    arg['<hit_id>'][0], amount, reason, all_studies=all_studies, override_bonused_status=override_bonused_status))
+                    arg['<hit_id>'][0],
+                    amount,
+                    reason,
+                    all_studies=all_studies,
+                    override_bonused_status=override_bonused_status))
                 if not result.success:
                     return self.poutput(result)
                 results = result.data['results']
@@ -898,21 +933,26 @@ class PsiturkNetworkShell(Cmd, object):
 
             elif arg['<assignment_id>']:
                 results = [
-                    self.amt_services_wrapper.bonus_assignment_for_assignment_id(
-                        assignment_id, amount, reason, override_bonused_status) for assignment_id in arg['<assignment_id>']]
+                    self.amt_services_wrapper.
+                    bonus_assignment_for_assignment_id(
+                        assignment_id, amount, reason, override_bonused_status)
+                    for assignment_id in arg['<assignment_id>']
+                ]
 
             if results:
                 [self.poutput(_result) for _result in results]
         else:
             self.help_worker()
 
-    worker_commands = ('approve', 'reject', 'unreject',
-                       'bonus', 'list', 'help')
+    worker_commands = ('approve', 'reject', 'unreject', 'bonus', 'list',
+                       'help')
 
     def complete_worker(self, text, line, begidx, endidx):
         """ Tab-complete worker command. """
-        return [i for i in PsiturkNetworkShell.worker_commands if
-                i.startswith(text)]
+        return [
+            i for i in PsiturkNetworkShell.worker_commands
+            if i.startswith(text)
+        ]
 
     def help_worker(self):
         """ Help for worker command. """
@@ -946,12 +986,14 @@ class PsiturkNetworkShell(Cmd, object):
         if arg['--print-only']:
             self.poutput(launch_url)
         else:
-            self.poutput("Launching browser pointed at your randomized debug link, "
-                         "\n\t" + launch_url)
+            self.poutput(
+                "Launching browser pointed at your randomized debug link, "
+                "\n\t" + launch_url)
             webbrowser.open(launch_url, new=1, autoraise=True)
 
-    def random_id_generator(self, size=6, chars=string.ascii_uppercase +
-                            string.digits):
+    def random_id_generator(self,
+                            size=6,
+                            chars=string.ascii_uppercase + string.digits):
         """ Generate random id numbers """
         return ''.join(random.choice(chars) for x in range(size))
 
@@ -968,7 +1010,7 @@ class PsiturkNetworkShell(Cmd, object):
                         return
                 except AttributeError:
                     pass
-                self.stdout.write("%s\n" % str(self.nohelp % (arg,)))
+                self.stdout.write("%s\n" % str(self.nohelp % (arg, )))
                 return
             func()
         else:
@@ -998,8 +1040,8 @@ class PsiturkNetworkShell(Cmd, object):
                         cmds_super.append(cmd)
             self.stdout.write("%s\n" % str(self.doc_leader))
             self.print_topics(self.psiturk_header, cmds_psiturk, 15, 80)
-            self.print_topics(self.misc_header, list(
-                help_struct.keys()), 15, 80)
+            self.print_topics(self.misc_header, list(help_struct.keys()), 15,
+                              80)
             self.print_topics(self.super_header, cmds_super, 15, 80)
 
     @docopt_cmd
@@ -1020,6 +1062,7 @@ class PsiturkNetworkShell(Cmd, object):
         """ Tab-complete migrate command """
         return [i for i in migrate_commands if i.startswith(text)]
 
+
 def run(script=None, execute=None, testfile=None, quiet=False):
     try:
         using_libedit = 'libedit' in readline.__doc__
@@ -1030,7 +1073,8 @@ def run(script=None, execute=None, testfile=None, quiet=False):
                 'of problems for the psiTurk shell. We highly recommend installing',
                 'the gnu version of readline by running "sudo pip install gnureadline".',
                 'Note: "pip install readline" will NOT work because of how the OSX',
-                'pythonpath is structured.']))
+                'pythonpath is structured.'
+            ]))
     except TypeError:
         pass  # pyreadline doesn't have anything for __doc__
     # Drop arguments which were already processed in command_line.py
@@ -1038,10 +1082,11 @@ def run(script=None, execute=None, testfile=None, quiet=False):
     config = PsiturkConfig()
     config.load_config()
     server = control.ExperimentServerController(config)
-    shell = PsiturkNetworkShell(
-        config, server,
-        mode=config.get('Shell Parameters', 'launch_in_mode'),
-        quiet=quiet)
+    shell = PsiturkNetworkShell(config,
+                                server,
+                                mode=config.get('Shell Parameters',
+                                                'launch_in_mode'),
+                                quiet=quiet)
 
     if script:
         shell.runcmds_plus_hooks([f'load {script}'])
