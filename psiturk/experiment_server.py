@@ -1,15 +1,19 @@
 from __future__ import generator_stop
-from gunicorn.app.base import Application
-from gunicorn import util
+
+from gevent import monkey
+
+monkey.patch_all()
+
 import multiprocessing
-from psiturk.psiturk_config import PsiturkConfig
 import os
 import sys
 import hashlib
 import signal
-from gevent import monkey
 
-monkey.patch_all()
+from gunicorn.app.base import Application
+from gunicorn import util
+
+from psiturk.psiturk_config import PsiturkConfig
 
 config = PsiturkConfig()
 config.load_config()
@@ -97,8 +101,14 @@ class ExperimentServer(Application):
             'errorlog': config.get('Server Parameters', "logfile"),
             'proc_name': 'psiturk_experiment_server_' + project_hash,
             'limit_request_line': '0',
-            'reload': config.get('Server Parameters', 'reload')
         }
+        if config.get('Server Parameters', 'reload'):
+            self.user_options |= {
+                'reload': True,
+                # TODO: bug with inotify and gevent, polling is okay for dev
+                'reload-engine': "polling",
+                'reload-extra-file': ["templates", "static"]
+            }
 
         if config.get("Server Parameters", "certfile") and config.get("Server Parameters", "keyfile"):
             print("Loading SSL certs for server...")
