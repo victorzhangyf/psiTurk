@@ -72,14 +72,15 @@ check_templates_exist()
 
 # Serving warm, fresh, & sweet custom, user-provided routes
 # ==========================================================
-
+CUSTOM_MODULE_PATH = CONFIG.get('Server Parameters', 'custom_module')
 try:
-    sys.path.append(os.getcwd())
-    from custom import custom_code
+    import importlib
+    custom_module = importlib.import_module(CUSTOM_MODULE_PATH)
+    custom_code = custom_module.custom_code
 except ModuleNotFoundError as e:
     app.logger.info("Hmm... it seems no custom code (custom.py) associated \
                     with this project.")
-except ImportError as e:
+except AttributeError as e:
     app.logger.error("There is custom code (custom.py) associated with this \
                       project but it doesn't import cleanly.  Raising exception,")
     raise
@@ -87,8 +88,8 @@ else:
     app.register_blueprint(custom_code)
     try:
         # noinspection PyUnresolvedReferences
-        from custom import init_app as custom_init_app
-    except ImportError as e:
+        custom_init_app = custom_module.init_app
+    except AttributeError as e:
         pass
     else:
         custom_init_app(app)
