@@ -136,15 +136,6 @@ if CONFIG.getboolean('Server Parameters', 'enable_dashboard'):
 
 init_db()
 
-# Read psiturk.js file into memory
-PSITURK_JS_FILE = os.path.join(os.path.dirname(__file__),
-                               "psiturk_js/psiturk.js")
-app.logger.info(PSITURK_JS_FILE)
-
-if os.path.exists(PSITURK_JS_FILE):
-    PSITURK_JS_CODE = open(PSITURK_JS_FILE).read()
-else:
-    PSITURK_JS_CODE = "alert('psiturk.js file not found!');"
 
 
 @app.errorhandler(ExperimentError)
@@ -244,12 +235,6 @@ def index():
 def favicon():
     """ Serve favicon """
     return app.send_static_file('favicon.ico')
-
-
-@app.route('/static/js/psiturk.js')
-def psiturk_js():
-    """ psiTurk js route """
-    return render_template_string(PSITURK_JS_CODE)
 
 
 @app.route('/check_worker_status', methods=['GET'])
